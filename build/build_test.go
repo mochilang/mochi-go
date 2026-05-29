@@ -244,10 +244,11 @@ func TestCacheArtefactDirNoCache(t *testing.T) {
 }
 
 func TestCacheArtefactDirShardsByPrefix(t *testing.T) {
-	d := NewDriver(Options{CacheDir: "/tmp/cache"})
+	root := filepath.Join(string(filepath.Separator)+"tmp", "cache")
+	d := NewDriver(Options{CacheDir: root})
 	key := "abcdef1234"
 	got := d.cacheArtefactDir(key)
-	want := filepath.Join("/tmp/cache", "artefacts", "ab", key)
+	want := filepath.Join(root, "artefacts", "ab", key)
 	if got != want {
 		t.Errorf("cacheArtefactDir = %q; want %q", got, want)
 	}

@@ -28,6 +28,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -140,7 +141,7 @@ func (d *Driver) Build(plan BuildPlan) (*BuildResult, error) {
 	for _, w := range plan.Wrappers {
 		ws.AddModule(WorkspaceModule{
 			ImportPath: synthesisedImportPath(w.ModuleName),
-			Path:       filepath.Join("go_wrap", w.ModuleName),
+			Path:       path.Join("go_wrap", w.ModuleName),
 			Kind:       ModuleWrapper,
 		})
 	}
@@ -210,9 +211,12 @@ func writeWrapperModule(modDir string, w wrapper.Result) error {
 		return fmt.Errorf("build: mkdir %s: %w", modDir, err)
 	}
 	for name, content := range w.Files {
-		// Refuse path components that escape modDir.
+		// Refuse path components that escape modDir. Reject leading
+		// `/` explicitly because filepath.IsAbs is platform-aware and
+		// returns false for `/etc/passwd` on Windows even though it is
+		// a Unix absolute path that we still want to refuse.
 		clean := filepath.Clean(name)
-		if strings.HasPrefix(clean, "..") || filepath.IsAbs(clean) {
+		if strings.HasPrefix(clean, "..") || filepath.IsAbs(clean) || strings.HasPrefix(name, "/") || strings.HasPrefix(name, `\`) {
 			return fmt.Errorf("build: wrapper file %q escapes module dir", name)
 		}
 		dest := filepath.Join(modDir, clean)

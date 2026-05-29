@@ -3,15 +3,17 @@ package build
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
 
 func TestNewDriverDefaultCacheDir(t *testing.T) {
-	t.Setenv("XDG_CACHE_HOME", "/tmp/xdg-test-cache")
+	t.Setenv("XDG_CACHE_HOME", filepath.Join(string(filepath.Separator)+"tmp", "xdg-test-cache"))
 	d := NewDriver(Options{})
-	if got := d.CacheDir(); got != "/tmp/xdg-test-cache/mochi/go-deps" {
-		t.Errorf("CacheDir() = %q; want /tmp/xdg-test-cache/mochi/go-deps", got)
+	want := filepath.Join(string(filepath.Separator)+"tmp", "xdg-test-cache", "mochi", "go-deps")
+	if got := d.CacheDir(); got != want {
+		t.Errorf("CacheDir() = %q; want %q", got, want)
 	}
 }
 
@@ -23,9 +25,10 @@ func TestNewDriverNoCache(t *testing.T) {
 }
 
 func TestNewDriverCustomCacheDir(t *testing.T) {
-	d := NewDriver(Options{CacheDir: "/var/cache/mochi-test"})
-	if got := d.CacheDir(); got != "/var/cache/mochi-test" {
-		t.Errorf("CacheDir() = %q; want /var/cache/mochi-test", got)
+	want := filepath.Join(string(filepath.Separator)+"var", "cache", "mochi-test")
+	d := NewDriver(Options{CacheDir: want})
+	if got := d.CacheDir(); got != want {
+		t.Errorf("CacheDir() = %q; want %q", got, want)
 	}
 }
 
@@ -197,14 +200,22 @@ func TestDriverOptionsAccessors(t *testing.T) {
 }
 
 func TestDefaultCacheDirFallbacks(t *testing.T) {
-	t.Setenv("XDG_CACHE_HOME", "/xdg-home")
-	if got := defaultCacheDir(); got != "/xdg-home/mochi/go-deps" {
-		t.Errorf("defaultCacheDir() with XDG = %q; want /xdg-home/mochi/go-deps", got)
+	xdg := filepath.Join(string(filepath.Separator)+"xdg-home")
+	t.Setenv("XDG_CACHE_HOME", xdg)
+	wantXDG := filepath.Join(xdg, "mochi", "go-deps")
+	if got := defaultCacheDir(); got != wantXDG {
+		t.Errorf("defaultCacheDir() with XDG = %q; want %q", got, wantXDG)
 	}
 	t.Setenv("XDG_CACHE_HOME", "")
-	t.Setenv("HOME", "/home/test")
-	if got := defaultCacheDir(); got != "/home/test/.cache/mochi/go-deps" {
-		t.Errorf("defaultCacheDir() with HOME = %q; want /home/test/.cache/mochi/go-deps", got)
+	home := filepath.Join(string(filepath.Separator)+"home", "test")
+	if runtime.GOOS == "windows" {
+		t.Setenv("USERPROFILE", home)
+	} else {
+		t.Setenv("HOME", home)
+	}
+	wantHOME := filepath.Join(home, ".cache", "mochi", "go-deps")
+	if got := defaultCacheDir(); got != wantHOME {
+		t.Errorf("defaultCacheDir() with home = %q; want %q", got, wantHOME)
 	}
 }
 

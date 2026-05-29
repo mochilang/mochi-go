@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -18,7 +19,11 @@ func TestGoIngestCLI(t *testing.T) {
 
 	dir := t.TempDir()
 	// Build the binary.
-	bin := filepath.Join(dir, "go-ingest")
+	binName := "go-ingest"
+	if runtime.GOOS == "windows" {
+		binName += ".exe"
+	}
+	bin := filepath.Join(dir, binName)
 	if out, err := exec.Command("go", "build", "-o", bin, ".").CombinedOutput(); err != nil {
 		t.Fatalf("go build: %v\n%s", err, out)
 	}
